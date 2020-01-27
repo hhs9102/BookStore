@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 
 public class BookServiceImpl implements BookService {
 
-    OrderService orderService;
+    private OrderService orderService;
 
-    BookStore bookStore;
+    private BookStore bookStore;
 
     public BookServiceImpl(OrderService orderService, BookStore bookStore) {
         this.orderService = orderService;

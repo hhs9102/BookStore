@@ -1,7 +1,6 @@
 package me.ham.order;
 
 import me.ham.pay.Payment;
-import me.ham.product.Book;
 import me.ham.store.BookStore;
 import me.ham.user.User;
 

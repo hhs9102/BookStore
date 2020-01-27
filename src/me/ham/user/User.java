@@ -1,7 +1,6 @@
 package me.ham.user;
 
 import me.ham.Util;
-import me.ham.product.Book;
 import me.ham.product.Type;
 import me.ham.store.BookStore;
 

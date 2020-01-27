@@ -1,91 +1,58 @@
 package me.ham;
 
-import me.ham.order.Order;
+import me.ham.order.OrderService;
+import me.ham.order.OrderServiceImpl;
 import me.ham.pay.Card;
-import me.ham.pay.Payment;
 import me.ham.product.Book;
 import me.ham.product.Type;
+import me.ham.service.BookService;
+import me.ham.service.BookServiceImpl;
 import me.ham.store.BookStore;
 import me.ham.user.User;
 
+import javax.print.attribute.HashAttributeSet;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
+    private static ConcurrentHashMap<Integer, Book> bookMap = new ConcurrentHashMap<>();
     public static void main(String[] args) {
-
-//        Scanner scanner = new Scanner(System.in);
-//        String readString = scanner.nextLine();
-//        while(readString!=null) {
-//            System.out.println(readString);
-//
-//            if (readString.isEmpty()) {
-//                System.out.println("Read Enter Key.");
-//            }else if("\\s".equals(readString)){
-//                System.out.println("space");
-//            }
-//
-//            if (scanner.hasNextLine()) {
-//                readString = scanner.nextLine();
-//            } else if("complete".equals(readString)){
-//                readString = null;
-//            }
-//        }
-
         BookStore bookStore = new BookStore(new BigDecimal(5000));
-        ConcurrentHashMap<Integer, Book> bookMap = new ConcurrentHashMap<>();
-        initialBookMap(bookMap);
-        bookStore.setBookMap(bookMap);
+        bookMap = initialBookMap();
+        bookStore.setBookInfo(bookMap);
 
         ReentrantLock reentrantLock = new ReentrantLock();
 
+        OrderService orderService = new OrderServiceImpl(new Card(), bookStore, new ReentrantLock()); ;
+        BookService bookService = new BookServiceImpl(orderService, bookStore);
+
         new Thread(() -> {
             User user = new User(1);
-            user.purchaseBook(bookMap.get(16374), new BigDecimal(5));
-            user.purchaseBook(bookMap.get(9236), new BigDecimal(10));
-
-            user.getOrderList(bookStore);
-            user.getOrderPrice(bookStore);
-
-            Order order = new Order(bookStore);
-            order.setPayment(new Card());
-            order.setReentrantLock(reentrantLock);
-            order.order(user);
+            bookService.addBook(user, 16374, new BigDecimal(5));
+            bookService.addBook(user,9236, new BigDecimal(10));
+            bookService.order(user);
 
         }).start();
         new Thread(() -> {
 
             User user = new User(2);
-            user.purchaseBook(bookMap.get(16374), new BigDecimal(5));
-            user.purchaseBook(bookMap.get(9236), new BigDecimal(10));
-
-            user.getOrderList(bookStore);
-            user.getOrderPrice(bookStore);
-
-            Order order = new Order(bookStore);
-            order.setPayment(new Card());
-            order.setReentrantLock(reentrantLock);
-            order.order(user);
+            bookService.addBook(user, 16374, new BigDecimal(5));
+            bookService.addBook(user,9236, new BigDecimal(10));
+            bookService.order(user);
         }).start();
         new Thread(() -> {
 
             User user = new User(3);
-            user.purchaseBook(bookMap.get(16374), new BigDecimal(5));
-            user.purchaseBook(bookMap.get(9236), new BigDecimal(10));
-
-            user.getOrderList(bookStore);
-            user.getOrderPrice(bookStore);
-
-            Order order = new Order(bookStore);
-            order.setPayment(new Card());
-            order.setReentrantLock(reentrantLock);
-            order.order(user);
+            bookService.addBook(user, 16374, new BigDecimal(5));
+            bookService.addBook(user,9236, new BigDecimal(10));
+            bookService.order(user);
         }).start();
     }
 
-    private static void initialBookMap(Map<Integer, Book> bookMap) {
+    public static ConcurrentHashMap<Integer, Book> initialBookMap() {
+        ConcurrentHashMap<Integer, Book> bookMap = new ConcurrentHashMap<>();
         List<Book> bookList = Arrays.asList(
                 new Book(16374, Type.CLASS,"스마트스토어로 월 100만원",  new BigDecimal(151950), new BigDecimal(99999))
                 ,new Book(26825, Type.CLASS,"해금, 특별하고 아름다운 나만의 반려악기",  new BigDecimal(114500), new BigDecimal(99999))
@@ -96,5 +63,6 @@ public class Main {
         for(Book book : bookList){
             bookMap.put(book.getNo(), book);
         }
+        return bookMap;
     }
 }

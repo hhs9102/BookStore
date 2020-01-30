@@ -73,12 +73,11 @@ public class User {
     }
 
     public BigDecimal getOrderPrice(BookStore bookStore) {
-        BigDecimal totalPrice = new BigDecimal(0);
-        for(Map.Entry<Integer, BigDecimal> purchaseBook : purchaseMap.entrySet()){
-            //BookPrice x 구매 개수
-            totalPrice = totalPrice.add(bookStore.getBookInfo().get(purchaseBook.getKey()).getPrice().multiply(purchaseBook.getValue()));
-        }
-        return totalPrice;
+        return purchaseMap.entrySet().stream()
+                .map(e -> {
+                    BigDecimal bookPrice = bookStore.getBookInfo().get(e.getKey()).getPrice();
+                    return bookPrice.multiply(e.getValue());
+                }).reduce(new BigDecimal(0), BigDecimal::add);
     }
 
     public boolean purchaseValidation(BookStore bookStore) {

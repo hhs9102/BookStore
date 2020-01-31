@@ -10,16 +10,16 @@ import me.ham.service.BookServiceImpl;
 import me.ham.store.BookStore;
 import me.ham.user.User;
 
-import javax.print.attribute.HashAttributeSet;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
     private static ConcurrentHashMap<Integer, Book> bookMap = new ConcurrentHashMap<>();
     public static void main(String[] args) {
-        BookStore bookStore = new BookStore(new BigDecimal(5000));
+        BookStore bookStore = new BookStore(new BigDecimal(5000), new BigDecimal(50000));
         bookMap = initialBookMap();
         bookStore.setBookInfo(bookMap);
 
@@ -30,23 +30,23 @@ public class Main {
 
         new Thread(() -> {
             User user = new User(1);
-            bookService.addBook(user, 16374, new BigDecimal(5));
-            bookService.addBook(user,9236, new BigDecimal(10));
+            user.purchaseBook(16374, new BigDecimal(5));
+            user.purchaseBook(9236, new BigDecimal(10));
             bookService.order(user);
 
         }).start();
         new Thread(() -> {
 
             User user = new User(2);
-            bookService.addBook(user, 16374, new BigDecimal(5));
-            bookService.addBook(user,9236, new BigDecimal(10));
+            user.purchaseBook(16374, new BigDecimal(5));
+            user.purchaseBook(9236, new BigDecimal(10));
             bookService.order(user);
         }).start();
         new Thread(() -> {
 
             User user = new User(3);
-            bookService.addBook(user, 16374, new BigDecimal(5));
-            bookService.addBook(user,9236, new BigDecimal(10));
+            user.purchaseBook(16374, new BigDecimal(5));
+            user.purchaseBook(9236, new BigDecimal(10));
             bookService.order(user);
         }).start();
     }

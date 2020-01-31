@@ -16,7 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import java.math.BigDecimal;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -34,7 +37,7 @@ public class BookStoreTest {
 
     @BeforeAll
     public void setUp(){
-        bookStore = new BookStore(new BigDecimal(5000));
+        bookStore = new BookStore(new BigDecimal(5000), new BigDecimal(50000));
         orderService = new OrderServiceImpl(new Card(), bookStore, new ReentrantLock());
         bookService = new BookServiceImpl(orderService, bookStore);
 
@@ -47,9 +50,9 @@ public class BookStoreTest {
     public void normalPurchase(){
         //given
         User user = new User(1);
-        bookService.addBook(user, 16374, new BigDecimal(10));
-        bookService.addBook(user, 9236, new BigDecimal(10));
-        BigDecimal orderPrice = user.getOrderPrice(bookStore);
+        user.purchaseBook(16374, new BigDecimal(10));
+        user.purchaseBook(9236, new BigDecimal(10));
+        BigDecimal orderPrice = user.getOrderTotalAmount(bookStore);
 
         //when
         bookService.order(user);
@@ -59,16 +62,31 @@ public class BookStoreTest {
     }
 
     @Test
+    @Description("배송비 추가 테스트")
+    public void addedDeliveryPrice(){
+        //given
+        User user = new User(1);
+        user.purchaseBook(9236, new BigDecimal(1)); //9900원
+        BigDecimal orderPrice = user.getOrderTotalAmount(bookStore);
+
+        //when
+        bookService.order(user);
+
+        //then
+        assertTrue(new BigDecimal(14900).equals(orderPrice));
+    }
+
+    @Test
     @Description("CLASS 타입의 book 두번 구매")
     public void classTypePurchaseDuplication(){
         //given
         User user = new User(1);
-        bookService.addBook(user, 16374, new BigDecimal(10));
-        bookService.addBook(user, 9236, new BigDecimal(10));
-        BigDecimal orderPrice = user.getOrderPrice(bookStore);
+        user.purchaseBook(16374, new BigDecimal(10));
+        user.purchaseBook(9236, new BigDecimal(10));
+        BigDecimal orderPrice = user.getOrderTotalAmount(bookStore);
         bookService.order(user);    //1번 구매
 
-        bookService.addBook(user, 16374, new BigDecimal(10));
+        user.purchaseBook(16374, new BigDecimal(10));
 
         //then
         assertThrows(RuntimeException.class,()->{
@@ -85,22 +103,22 @@ public class BookStoreTest {
                 () -> {
                     new Thread(() -> {
                         User user = new User(1);
-                        bookService.addBook(user, 16374, new BigDecimal(5));
-                        bookService.addBook(user,9236, new BigDecimal(10));
+                        user.purchaseBook(16374, new BigDecimal(5));
+                        user.purchaseBook(9236, new BigDecimal(10));
                         bookService.order(user);
 
                     }).start();
                     new Thread(() -> {
 
                         User user = new User(2);
-                        bookService.addBook(user, 16374, new BigDecimal(5));
-                        bookService.addBook(user,9236, new BigDecimal(10));
+                        user.purchaseBook(16374, new BigDecimal(5));
+                        user.purchaseBook(9236, new BigDecimal(10));
                         bookService.order(user);
                     }).start();
                     new Thread(() -> {
                         User user = new User(3);
-                        bookService.addBook(user, 16374, new BigDecimal(5));
-                        bookService.addBook(user,9236, new BigDecimal(10));
+                        user.purchaseBook(16374, new BigDecimal(5));
+                        user.purchaseBook(9236, new BigDecimal(10));
                         bookService.order(user);
                     }).start();
                 });
@@ -110,7 +128,7 @@ public class BookStoreTest {
     @Description("ExecutorService를 이용한 multi Thread 테스트")
     //9236의 재고가 22개라서 3번째 주문에서 SoldOutException
     public void multiThreadByExecutorService() throws InterruptedException {
-        AtomicBoolean isSetException = new AtomicBoolean(false);
+        AtomicBoolean isThrownException = new AtomicBoolean(false);
 
         CountDownLatch countDownLatch = new CountDownLatch(3);
         AtomicInteger atomicInteger = new AtomicInteger(0);
@@ -120,20 +138,20 @@ public class BookStoreTest {
                 executorService.submit(
                     ()->{
                         User user = new User(atomicInteger.getAndAdd(1));
-                        bookService.addBook(user, 16374, new BigDecimal(5));
-                        bookService.addBook(user,9236, new BigDecimal(10));
+                        user.purchaseBook(16374, new BigDecimal(5));
+                        user.purchaseBook(9236, new BigDecimal(10));
 
                         try{
                             bookService.order(user);
                             countDownLatch.countDown();
                         }catch (SoldOutException e){
                             countDownLatch.countDown();
-                            isSetException.set(true);
+                            isThrownException.set(true);
                         }
                     }
                 );
             }
         countDownLatch.await();
-        assertTrue(isSetException.get());
+        assertTrue(isThrownException.get());
     }
 }

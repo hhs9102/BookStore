@@ -1,87 +1,85 @@
 package me.ham.user;
 
-import me.ham.Util;
 import me.ham.product.Type;
 import me.ham.store.BookStore;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
 public class User {
     private Integer id;
-    private Map<Integer, BigDecimal> purchaseMap;
-    private Map<Integer, BigDecimal> purchaseHistory;
+    private Map<Integer, BigDecimal> purchaseBooks;
+    private Map<Integer, BigDecimal> purchaseBooksHistory;
 
     public User(Integer id) {
         this.id = id;
-        this.purchaseMap = new HashMap<>();
-        this.purchaseHistory = new HashMap<>();
+        this.purchaseBooks = new HashMap<>();
+        this.purchaseBooksHistory = new HashMap<>();
     }
 
     public Integer getId() {
         return id;
     }
 
-    public Map<Integer, BigDecimal> getPurchaseMap() {
-        return purchaseMap;
+    public Map<Integer, BigDecimal> getPurchaseBooks() {
+        return purchaseBooks;
     }
 
-    public Map<Integer, BigDecimal> getPurchaseHistory() {
-        return purchaseHistory;
+    public Map<Integer, BigDecimal> getPurchaseBooksHistory() {
+        return purchaseBooksHistory;
     }
 
+    //구매
+    public void purchaseBook(Integer bookNo, BigDecimal quantity) {
+        purchaseBooks.compute(bookNo
+                , (key, value) -> {
+                    return value == null ? quantity : value.add(quantity);
+                });
+    }
+
+    //구매 이력 쌓기
     public Map<Integer, BigDecimal> addPurchaseHistoryBook(){
-        for(Map.Entry<Integer, BigDecimal> purchaseBook : purchaseMap.entrySet()){
-            purchaseHistory.compute(purchaseBook.getKey()
+        for(Map.Entry<Integer, BigDecimal> purchaseBook : purchaseBooks.entrySet()){
+            purchaseBooksHistory.compute(purchaseBook.getKey()
                     , (key, value) -> {
                         return value == null ? purchaseBook.getValue() : value.add(purchaseBook.getValue());
                     });
         }
-        return purchaseHistory;
+        return purchaseBooksHistory;
     }
 
-    public void clasePurchaseMap() {
-        this.purchaseMap.clear();
+    public void clearPurchaseBooks() {
+        this.purchaseBooks.clear();
     }
 
 
     //구매이력이 없어야함
     private boolean alreadyPurchaseClassType(Integer no) {
-        return purchaseHistory.get(no) != null;
+        return purchaseBooksHistory.get(no) != null;
     }
 
-    public void printOrderList(BookStore bookStore){
-        System.out.println("주문 내역:");
-        Util.printDash();
-        for(Map.Entry<Integer, BigDecimal> book :  purchaseMap.entrySet()){
-            System.out.printf("%s - %s개%n",bookStore.getBookInfo().get(book.getKey()).getName(), book.getValue().toString());
-        }
-    }
-
-    public void printOrderPrice(BookStore bookStore){
-        DecimalFormat decimalFormat = new DecimalFormat("###,###");
-        BigDecimal totalPrice = getOrderPrice(bookStore);
-
-        Util.printDash();
-        System.out.printf("주문금액: %s원%n", decimalFormat.format(totalPrice));
-        if(totalPrice.compareTo(new BigDecimal("50000"))==-1){
-            totalPrice.add(bookStore.getDeliveryPrice());
-            System.out.printf("배송비: %s원%n", decimalFormat.format(bookStore.getDeliveryPrice()));
+    //총 주문가격(배송비계산)
+    public BigDecimal getOrderTotalAmount(BookStore bookStore) {
+        BigDecimal amount = getOrderPrice(bookStore);
+        if(!bookStore.isFreeShips(amount)){
+            return amount.add(bookStore.getDeliveryPrice());
+        }else{
+            return amount;
         }
     }
 
     public BigDecimal getOrderPrice(BookStore bookStore) {
-        return purchaseMap.entrySet().stream()
+        return purchaseBooks.entrySet().stream()
                 .map(e -> {
                     BigDecimal bookPrice = bookStore.getBookInfo().get(e.getKey()).getPrice();
                     return bookPrice.multiply(e.getValue());
                 }).reduce(new BigDecimal(0), BigDecimal::add);
     }
 
+    //TYPE.CLASS 상품은 구매이력 존재시 재구매 불가
     public boolean purchaseValidation(BookStore bookStore) {
-        for(Map.Entry<Integer, BigDecimal> purchaseBook : purchaseMap.entrySet()){
+        for(Map.Entry<Integer, BigDecimal> purchaseBook : purchaseBooks.entrySet()){
             Type type = bookStore.getBookInfo().get(purchaseBook.getKey()).getType();
             if(Type.CLASS == type && alreadyPurchaseClassType(purchaseBook.getKey())){
                 throw new RuntimeException("Class 중복 구매 불가::"+bookStore.getBookInfo().get(purchaseBook.getKey()).getName());

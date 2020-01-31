@@ -10,13 +10,13 @@ public class Card implements Payment {
 
     @Override
     public boolean pay(User user, BookStore bookStore) {
-        bookStore.checkStock(user.getPurchaseMap()); //validation
-        bookStore.updateStock(user.getPurchaseMap()); //구매
+        bookStore.checkStock(user.getPurchaseBooks()); //validation
+        bookStore.updateStock(user.getPurchaseBooks()); //구매
 
         Util.printDash();
 
         DecimalFormat decimalFormat = new DecimalFormat("###,###");
-        System.out.printf("지불금액 : %s원%n", decimalFormat.format(user.getOrderPrice(bookStore)));
+        System.out.printf("지불금액 : %s원%n", decimalFormat.format(user.getOrderTotalAmount(bookStore)));
         return true;
     }
 }

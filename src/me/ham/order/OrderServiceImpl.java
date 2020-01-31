@@ -19,6 +19,7 @@ public class OrderServiceImpl implements OrderService{
 
     @Override
     public boolean order(User user){
+        //TODO : LOCK 위치 고민 필요
         reentrantLock.lock();
         payment.pay(user, bookStore);
         postOrder(user);
@@ -27,8 +28,8 @@ public class OrderServiceImpl implements OrderService{
     }
 
     @Override
-    public void postOrder(User user) {
+    public void postOrder(User user) { //구매 후처리
         user.addPurchaseHistoryBook();
-        user.clasePurchaseMap();
+        user.clearPurchaseBooks();
     }
 }
